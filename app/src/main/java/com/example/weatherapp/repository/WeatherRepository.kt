@@ -10,10 +10,10 @@ import javax.inject.Inject
 class WeatherRepository @Inject constructor(private val api: WeatherApi){
     private val dataOrException = DataOrException<Weather, Boolean, Exception>()
 
-    suspend fun getWeather(cityQuery: String): DataOrException<Weather, Boolean, Exception>{
+    suspend fun getWeather(cityQuery: String, units: String): DataOrException<Weather, Boolean, Exception>{
         try {
             dataOrException.loading = true
-            dataOrException.data = api.getWeather(query = cityQuery)
+            dataOrException.data = api.getWeather(query = cityQuery, units = units)
             if(dataOrException.data.toString().isNotEmpty()){
                 dataOrException.loading = false
             }

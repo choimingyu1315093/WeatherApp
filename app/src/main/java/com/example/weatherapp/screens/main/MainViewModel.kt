@@ -41,7 +41,7 @@ class MainViewModel @Inject constructor(private val repository: WeatherRepositor
 //        }
 //    }
 
-    suspend fun getWeather(city: String): DataOrException<Weather, Boolean, Exception>{
-        return repository.getWeather(cityQuery = city)
+    suspend fun getWeather(city: String, units: String): DataOrException<Weather, Boolean, Exception>{
+        return repository.getWeather(cityQuery = city, units = units)
     }
 }

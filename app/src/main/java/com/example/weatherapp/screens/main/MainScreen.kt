@@ -28,7 +28,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,6 +57,7 @@ import com.example.weatherapp.data.DataOrException
 import com.example.weatherapp.model.Weather
 import com.example.weatherapp.model.WeatherItem
 import com.example.weatherapp.navigation.WeatherScreens
+import com.example.weatherapp.screens.settings.SettingsViewModel
 import com.example.weatherapp.util.formatDate
 import com.example.weatherapp.util.formatDateTime
 import com.example.weatherapp.util.formatDecimals
@@ -66,16 +72,26 @@ fun MainScreen(
     navController: NavController,
     city: String = "Seoul",
     mainViewModel: MainViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val weatherData = produceState<DataOrException<Weather, Boolean, Exception>>(initialValue = DataOrException(loading = true)){
-        value = mainViewModel.getWeather(city)
-    }.value
+    val curCity: String = if(city.isBlank()) "Seattle" else city
+    val unitFromDb = settingsViewModel.unitList.collectAsState().value
+    var unit by remember { mutableStateOf("imperial") }
+    var isImperial by remember { mutableStateOf(false) }
 
-    if(weatherData.loading == true){
-        CircularProgressIndicator()
-    }else if(weatherData.data != null){
-        MainScaffold(weatherData.data!!, navController)
+    if(!unitFromDb.isNullOrEmpty()){
+        unit = unitFromDb[0].unit.split(" ")[0].lowercase()
+        isImperial = unit == "imperial"
+        val weatherData = produceState<DataOrException<Weather, Boolean, Exception>>(initialValue = DataOrException(loading = true)){
+            value = mainViewModel.getWeather(curCity, unit)
+        }.value
+
+        if(weatherData.loading == true){
+            CircularProgressIndicator()
+        }else if(weatherData.data != null){
+            MainScaffold(weatherData.data!!, navController)
+        }
     }
 }
 
@@ -84,7 +100,7 @@ fun MainScaffold(weather: Weather, navController: NavController, modifier: Modif
     Scaffold (
         topBar = {
             WeatherAppBar(
-                title = weather.city.name + ", ${weather.city.country}",
+                title = weather.city.name + ",${weather.city.country}",
                 navController = navController,
                 elevation = 5.dp,
                 onButtonClicked = {

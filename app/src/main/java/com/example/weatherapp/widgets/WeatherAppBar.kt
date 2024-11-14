@@ -1,7 +1,9 @@
 package com.example.weatherapp.widgets
 
+import android.content.Context
 import android.media.Image
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
@@ -34,21 +37,28 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.weatherapp.model.Favorite
+import com.example.weatherapp.navigation.WeatherScreens
+import com.example.weatherapp.screens.favorite.FavoriteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +67,7 @@ fun WeatherAppBar(
     icon: ImageVector? = null,
     isMainScreen: Boolean = true,
     navController: NavController,
+    favoriteViewModel: FavoriteViewModel = hiltViewModel(),
     elevation: Dp = 0.dp,
     onAddActionClicked: () -> Unit = {},
     onButtonClicked: () -> Unit = {},
@@ -66,6 +77,8 @@ fun WeatherAppBar(
     if(showDialog.value){
         ShowSettingDropDownMenu(showDialog = showDialog, navController = navController)
     }
+    val showIt = remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Card (
         colors = CardDefaults.cardColors(
@@ -130,6 +143,35 @@ fun WeatherAppBar(
                             }
                     )
                 }
+
+                if(isMainScreen){
+                    val isAlreadyFavList = favoriteViewModel.favList.collectAsState().value.filter { item ->
+                        item.city == title.split(",")[0]
+                    }
+                    if(isAlreadyFavList.isNullOrEmpty()){
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Favorite Icon",
+                            modifier = modifier
+                                .scale(.9f)
+                                .clickable {
+                                    favoriteViewModel.insertFavorite(Favorite(
+                                        city = title.split(",")[0],
+                                        country = title.split(",")[1]
+                                    ))
+                                    showIt.value = true
+                                },
+                            tint = Color.Red.copy(
+                                alpha = .6f
+                            )
+                        )
+                    }else {
+                        Box{}
+                        showIt.value = false
+                    }
+
+                    ShowToast(context = context, showIt)
+                }
             },
         )
     }
@@ -175,7 +217,13 @@ fun ShowSettingDropDownMenu(
                             text = text,
                             modifier = modifier
                                 .clickable {
-
+                                    navController.navigate(
+                                        when(text){
+                                            "About" -> WeatherScreens.AboutScreen.name
+                                            "Favorites" -> WeatherScreens.FavoriteScreen.name
+                                            else -> WeatherScreens.SettingsScreen.name
+                                        }
+                                    )
                                 },
                             fontWeight = FontWeight.W300
                         )
@@ -187,5 +235,12 @@ fun ShowSettingDropDownMenu(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun ShowToast(context: Context, showIt: MutableState<Boolean>) {
+    if(showIt.value){
+        Toast.makeText(context, "Added to Favorites", Toast.LENGTH_SHORT).show()
     }
 }
